@@ -91,6 +91,13 @@ void setup()
 
     // Valid values are AM_HAL_ADC_SLOT_8IT, AM_HAL_ADC_SLOT_10BIT, AM_HAL_ADC_SLOT_12BIT, AM_HAL_ADC_SLOT_14BIT
     slot->setPrecision(AM_HAL_ADC_SLOT_14BIT);
+
+    /*
+    Valid values for setClock:
+        AM_HAL_ADC_CLKSEL_HFRC
+        AM_HAL_ADC_CLKSEL_HFRC_DIV2
+    */
+    adc->setClock(AM_HAL_ADC_CLKSEL_HFRC);
 }
 
 
