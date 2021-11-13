@@ -1,0 +1,30 @@
+{
+    "name": "Arduino-Apollo3ADC",
+    "version": "0.0.1",
+    "description": "An Arduino library to utilize more of the Apollo3 ADC functionality.",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/jcu-eresearch/Arduino-Apollo3ADC.git"
+    },
+    "keywords": [
+      "ADC"
+    ],
+    "authors": [
+      {
+        "name": "NigelB"
+      }
+    ],
+    "frameworks": [
+      "arduino"
+    ],
+    "dependencies": {
+    },
+    "license": "GPL-3.0",
+    "libArchive": false,
+    "build": {
+      "srcFilter": [
+        "+<*.cpp>",
+        "+<*.h>"
+      ]
+    }
+  }
