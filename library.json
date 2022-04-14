@@ -20,8 +20,8 @@
     "dependencies": {
     },
     "license": "GPL-3.0",
-    "libArchive": false,
     "build": {
+      "libArchive": false,
       "srcFilter": [
         "+<*.cpp>",
         "+<*.h>"
