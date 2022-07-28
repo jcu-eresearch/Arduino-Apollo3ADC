@@ -294,6 +294,8 @@ void Apollo3ADC::setAveragingTimer(uint32_t timer)
 
 uint32_t Apollo3ADC::begin()
 {
+    // analogRead();
+    am_hal_pwrctrl_periph_enable(AM_HAL_PWRCTRL_PERIPH_ADC);
     uint32_t status = AM_HAL_STATUS_SUCCESS;
     if(!started){
         for(size_t i = 0; i < Apollo3ADC_SLOTS; i++)
