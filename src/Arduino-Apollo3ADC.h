@@ -69,6 +69,7 @@ class Apollo3ADC_Slot
     
     public:
         Apollo3ADC_Slot(Apollo3ADC* adc, Apollo3ADC_Slot_e slot);
+        ~Apollo3ADC_Slot();
         uint32_t commit();
         void setAveraging(am_hal_adc_meas_avg_e averaging);
         void setPrecision(am_hal_adc_slot_prec_e precision);
@@ -104,6 +105,7 @@ class Apollo3ADC
         Apollo3ADC_Slot * slots[Apollo3ADC_SLOTS];
         bool dirty = true;
         bool started = false;
+        bool timer_started = false;
         
         uint32_t averaging_freq = AM_HAL_CTIMER_HFRC_12MHZ;
         uint32_t averaging_period  = 10;
@@ -112,6 +114,7 @@ class Apollo3ADC
 
         void markDirty();
         void initTimer();
+        void deinitTimer();
 
     public:
         Apollo3ADC();

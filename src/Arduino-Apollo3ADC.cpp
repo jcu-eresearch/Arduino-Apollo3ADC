@@ -31,6 +31,20 @@ Apollo3ADC_Slot::Apollo3ADC_Slot(Apollo3ADC* adc, Apollo3ADC_Slot_e slot)
     this->slot = slot;
 }
 
+Apollo3ADC_Slot::~Apollo3ADC_Slot()
+{
+    // pincfg.eGPInput = 
+    Serial.println("Dissabling ADC Pin");
+    am_hal_gpio_pincfg_t disable =
+    {
+        .uFuncSel       = 3,
+        .eDriveStrength = AM_HAL_GPIO_PIN_DRIVESTRENGTH_4MA,
+        .eGPOutcfg      = AM_HAL_GPIO_PIN_OUTCFG_DISABLE,
+        .eGPInput       = AM_HAL_GPIO_PIN_INPUT_NONE,
+    };                    
+    am_hal_gpio_pinconfig(pinname, disable);    
+};
+
 void Apollo3ADC_Slot::markDirty()
 {
     dirty = true;
@@ -150,6 +164,7 @@ bool Apollo3ADC_Slot::setPin(PinName name){
             }
             break;
         }
+        // pincfg.eGPInput = AM_HAL_GPIO_PIN_INPUT_ENABLE;
         markDirty();
         channel.eChannel = chan;
     }
@@ -246,12 +261,72 @@ int32_t Apollo3ADC_Slot::readResult(int32_t &result)
 
 Apollo3ADC::Apollo3ADC()
 {
-
+        for(size_t i = 0; i < Apollo3ADC_SLOTS; i++)
+        {
+            
+            slots[i] = NULL;
+        }
 }
 
 void Apollo3ADC::markDirty()
 {
     dirty = true;
+}
+
+uint32_t get_timer_int_number(uint32_t timer_segment, uint32_t timer_number)
+{
+    switch(timer_segment)
+    {
+        case AM_HAL_CTIMER_TIMERA:
+        {
+            switch(timer_number)
+            {
+                case 0:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERA0;
+                }break;
+                case 1:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERA1;
+                }break;
+                case 2:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERA2;
+                }break;
+                case 3:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERA3;
+                }break;
+
+            }
+            
+        }break;
+        case AM_HAL_CTIMER_TIMERB:
+        {
+                case 0:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERB0;
+                }break;
+                case 1:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERB1;
+                }break;
+                case 2:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERB2;
+                }break;
+                case 3:
+                {
+                    return AM_HAL_CTIMER_INT_TIMERB3;
+                }break;
+        }break;
+        case AM_HAL_CTIMER_BOTH:
+        default:
+        {
+
+        }break;;
+    }
+    return 0;
 }
 
 void Apollo3ADC::initTimer()
@@ -262,10 +337,21 @@ void Apollo3ADC::initTimer()
                             AM_HAL_CTIMER_INT_ENABLE
     );
 
-    am_hal_ctimer_int_enable(AM_HAL_CTIMER_INT_TIMERA3);
+    // am_hal_ctimer_int_enable(AM_HAL_CTIMER_INT_TIMERA3);
+    am_hal_ctimer_int_enable(get_timer_int_number(averaging_timer, Apollo3ADC_Timer));
 
     am_hal_ctimer_period_set(Apollo3ADC_Timer, averaging_timer, averaging_period, averaging_on_time);    
     am_hal_ctimer_adc_trigger_enable();
+    timer_started = true;
+}
+
+void Apollo3ADC::deinitTimer()
+{
+    timer_started = false;
+    am_hal_ctimer_int_disable(get_timer_int_number(averaging_timer, Apollo3ADC_Timer));
+    am_hal_ctimer_adc_trigger_disable();
+    am_hal_ctimer_stop(Apollo3ADC_Timer, averaging_timer);
+    
 }
 
 void Apollo3ADC::setAveragingFreq(uint32_t freq)
@@ -298,10 +384,15 @@ uint32_t Apollo3ADC::begin()
     am_hal_pwrctrl_periph_enable(AM_HAL_PWRCTRL_PERIPH_ADC);
     uint32_t status = AM_HAL_STATUS_SUCCESS;
     if(!started){
-        for(size_t i = 0; i < Apollo3ADC_SLOTS; i++)
-        {
-            slots[i] = NULL;
-        }
+        // for(size_t i = 0; i < Apollo3ADC_SLOTS; i++)
+        // {
+        //     if(slots[i] != NULL)
+        //     {
+        //         delete slots[i];
+        //         slots[i] = NULL;
+        //     }
+            
+        // }
 
         status = am_hal_adc_initialize(adc_number, &g_ADCHandle);
         if(status != AM_HAL_STATUS_SUCCESS){ return status; }
@@ -327,8 +418,12 @@ uint32_t Apollo3ADC::commit()
         {
             begin();
         }
+              
+        
         uint32_t r = am_hal_adc_configure(g_ADCHandle, &ADCConfig);  
-        am_hal_adc_disable(g_ADCHandle);      
+        am_hal_adc_disable(g_ADCHandle);
+        
+        
 
         return r;
     }
@@ -402,6 +497,10 @@ uint32_t Apollo3ADC::end()
         status = am_hal_adc_deinitialize(g_ADCHandle);
         if(status != AM_HAL_STATUS_SUCCESS){ return status; }
         started = false;
+    }
+    if(timer_started)
+    {
+        deinitTimer();
     }
     return status;
 }
