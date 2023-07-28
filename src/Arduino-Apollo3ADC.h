@@ -106,6 +106,7 @@ class Apollo3ADC
         bool dirty = true;
         bool started = false;
         bool timer_started = false;
+        bool LFRC_started = false;
         
         uint32_t averaging_freq = AM_HAL_CTIMER_HFRC_12MHZ;
         uint32_t averaging_period  = 10;

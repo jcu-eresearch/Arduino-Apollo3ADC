@@ -226,6 +226,7 @@ int32_t Apollo3ADC_Slot::startSample(){
     {
         am_hal_adc_sw_trigger(adc->g_ADCHandle);
     }else{
+        
         am_hal_ctimer_start(Apollo3ADC_Timer, AM_HAL_CTIMER_TIMERA);
         am_hal_adc_sw_trigger(adc->g_ADCHandle);
         
@@ -240,6 +241,7 @@ int32_t Apollo3ADC_Slot::readResult(int32_t &result)
     uint32_t ui32NumSamples = 1;    
     uint32_t status = AM_HAL_STATUS_SUCCESS;
     
+    // If the LFRC clock is not running this will hang.
     do { // Wait for interrupt
         MBED_ASSERT(AM_HAL_STATUS_SUCCESS == am_hal_adc_interrupt_status(adc->g_ADCHandle, &ui32IntMask, false));
     } while(!(ui32IntMask & AM_HAL_ADC_INT_CNVCMP));
@@ -247,6 +249,7 @@ int32_t Apollo3ADC_Slot::readResult(int32_t &result)
     if(channel.eMeasToAvg != AM_HAL_ADC_SLOT_AVG_1)
     {
         am_hal_ctimer_stop(Apollo3ADC_Timer, AM_HAL_CTIMER_TIMERA);
+
     }
     
     am_hal_adc_interrupt_clear(adc->g_ADCHandle, 0xFFFFFFFF);
@@ -403,6 +406,21 @@ uint32_t Apollo3ADC::begin()
 
         // status = am_hal_adc_interrupt_enable(g_ADCHandle, AM_HAL_ADC_INT_CNVCMP );
         // if(status != AM_HAL_STATUS_SUCCESS){ return status; }
+
+
+        // If the LFRC clock is no running this library will hanf waiting for 
+        // an interrupt.
+        if(CLKGEN->OCTRL_b.STOPRC == CLKGEN_OCTRL_STOPRC_STOP)
+        {
+            Serial.println("Starting LFRC Clock");                    
+            if(am_hal_clkgen_control(AM_HAL_CLKGEN_CONTROL_LFRC_START, 0) == AM_HAL_STATUS_SUCCESS)
+            {
+                LFRC_started = true;
+            }
+        }else
+        {
+            LFRC_started = false;
+        }
         
         started = true;
     }
@@ -419,11 +437,8 @@ uint32_t Apollo3ADC::commit()
             begin();
         }
               
-        
         uint32_t r = am_hal_adc_configure(g_ADCHandle, &ADCConfig);  
         am_hal_adc_disable(g_ADCHandle);
-        
-        
 
         return r;
     }
@@ -501,6 +516,12 @@ uint32_t Apollo3ADC::end()
     if(timer_started)
     {
         deinitTimer();
+    }
+    if(LFRC_started)
+    {
+        Serial.println("Stopping LFRC Clock");
+        am_hal_clkgen_control(AM_HAL_CLKGEN_CONTROL_LFRC_STOP, 0);
+        LFRC_started = false;
     }
     return status;
 }
